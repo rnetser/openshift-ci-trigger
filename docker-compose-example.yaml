@@ -1,0 +1,13 @@
+version: "3.8"
+services:
+  openshift-ci-trigger:
+    container_name: openshift-ci-trigger
+    image: quay.io/redhat_msi/openshift-ci-trigger
+    volumes:
+      - ./config.yaml:/config.yaml:Z
+      - /etc/ssl/certs/:/etc/ssl/certs/:ro
+    environment:
+      - FLASK_DEBUG=1 # Debug Flask server to get logs to console.
+    ports:
+      - "5000:5000"
+    restart: unless-stopped

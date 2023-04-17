@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "openshift-ci-trigger"
+version = "1.0.0"
+description = "Trigger openshift CI job based on merged MR in Gitlab"
+authors = ["Meni Yakove <myakove@gmail.com>"]
+readme = "README.md"
+packages = [{include = "app"}]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+flask = "*"
+python-gitlab = "*"
+PyYaml = "*"
+
+
+[tool.poetry.group.dev.dependencies]
+ipython = "*"
+ipdb = "*"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
