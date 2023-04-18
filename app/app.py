@@ -1,7 +1,9 @@
+import json
 import os
 import re
 
 import gitlab
+import requests
 import yaml
 from flask import Flask, request
 
@@ -19,12 +21,15 @@ class RepositoryNotFoundError(Exception):
     pass
 
 
-def data_from_config(repository_name):
+def data_from_config():
     config_file = os.environ.get("OPENSHIFT_CI_TRIGGER_CONFIG", "/config/config.yaml")
     with open(config_file) as fd:
-        repos = yaml.safe_load(fd)
+        return yaml.safe_load(fd)
 
-    data = repos["repositories"].get(repository_name)
+
+def repo_data_from_config(repository_name):
+    config = data_from_config()
+    data = config["repositories"].get(repository_name)
     if not data:
         raise RepositoryNotFoundError(
             f"Repository {repository_name} not found in config file"
@@ -60,8 +65,20 @@ def process_hook(api, data):
 
 
 def trigger_openshift_ci_job(job):
-    # TODO: Call openshift-ci to trigger the job
+    openshift_ci_token_env_variable_str = "OPENSHIFT_CI_TRIGGER_TOKEN"
     app.logger.info(f"Triggering openshift-ci job: {job}")
+    token = os.environ.get(openshift_ci_token_env_variable_str)
+    assert token, f"{openshift_ci_token_env_variable_str} is not set"
+    res = requests.post(
+        url=f"{data_from_config()['trigger_url']}/{job}",
+        headers={"Authorization": f"Bearer {token}"},
+        data='{"job_execution_type": "1"}',
+    )
+    res_dict = json.loads(res.text)
+    if (not res.ok) or res_dict["job_status"] != "TRIGGERED":
+        app.logger.error(
+            f"Failed to trigger openshift-ci job: {job}, response: {res_dict}"
+        )
 
 
 @app.route("/process", methods=["POST"])
@@ -70,7 +87,7 @@ def process():
     event_type = hook_data["event_type"]
     repository_name = hook_data["repository"]["name"]
     app.logger.info(f"{repository_name}: Event type: {event_type}")
-    repository_data = data_from_config(repository_name=repository_name)
+    repository_data = repo_data_from_config(repository_name=repository_name)
     api = get_api(
         url=repository_data["gitlab_url"], token=repository_data["gitlab_token"]
     )
