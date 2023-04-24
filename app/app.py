@@ -1,9 +1,10 @@
 import os
 import re
 
-from flask import Flask, request
 import gitlab
 import yaml
+from flask import Flask, request
+
 
 app = Flask("webhook_server")
 
