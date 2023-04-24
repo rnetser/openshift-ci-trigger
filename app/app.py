@@ -65,13 +65,11 @@ def process_hook(api, data):
 
 
 def trigger_openshift_ci_job(job):
-    openshift_ci_token_env_variable_str = "OPENSHIFT_CI_TRIGGER_TOKEN"
     app.logger.info(f"Triggering openshift-ci job: {job}")
-    token = os.environ.get(openshift_ci_token_env_variable_str)
-    assert token, f"{openshift_ci_token_env_variable_str} is not set"
+    config_data = data_from_config()
     res = requests.post(
-        url=f"{data_from_config()['trigger_url']}/{job}",
-        headers={"Authorization": f"Bearer {token}"},
+        url=f"{config_data['trigger_url']}/{job}",
+        headers={"Authorization": f"Bearer {config_data['trigger_token']}"},
         data='{"job_execution_type": "1"}',
     )
     res_dict = json.loads(res.text)
@@ -79,6 +77,7 @@ def trigger_openshift_ci_job(job):
         app.logger.error(
             f"Failed to trigger openshift-ci job: {job}, response: {res_dict}"
         )
+    return res_dict
 
 
 @app.route("/process", methods=["POST"])

@@ -1,7 +1,8 @@
+trigger_url: <url to send the trigger request to>
+trigger_token: <token>
+
 repositories:
   repository-name:
     name: org/name
     gitlab_url: https://<gitlab-url>
     gitlab_token: <token>
-
-trigger_url: <url to send the trigger request to>
