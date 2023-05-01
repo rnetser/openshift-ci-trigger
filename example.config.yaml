@@ -1,5 +1,5 @@
 repositories:
-  openshift-python-wrapper:
-    webhook_ip: <HTTP://IP OR URL:PORT>
-    name: RedHatQE/openshift-python-wrapper
-    project_id: <PROJECT ID>
+  repository-name:
+    name: org/name
+    gitlab_url: https://<gitlab-url>
+    gitlab_token: <token>
