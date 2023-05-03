@@ -13,7 +13,7 @@ app = Flask("webhook_server")
 
 # TODO: Fill all addons and jobs mapping
 PRODUCTS_AND_JOBS_MAPPING = {
-    "dbaas-operator": "periodic-ci-CSPI-QE-MSI-rdbaas-operator-addon-poc-tests"
+    "dbaas-operator": "periodic-ci-CSPI-QE-MSI-rdbaas-operator-addon-v4.12-poc-tests"
 }
 
 
