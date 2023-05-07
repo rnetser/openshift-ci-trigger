@@ -4,9 +4,12 @@ import re
 
 import gitlab
 import requests
+import urllib3
 import yaml
 from flask import Flask, request
 
+
+urllib3.disable_warnings()
 
 app = Flask("webhook_server")
 
