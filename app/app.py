@@ -85,16 +85,20 @@ def trigger_openshift_ci_job(job):
 
 @app.route("/process", methods=["POST"])
 def process():
-    hook_data = request.json
-    event_type = hook_data["event_type"]
-    repository_name = hook_data["repository"]["name"]
-    app.logger.info(f"{repository_name}: Event type: {event_type}")
-    repository_data = repo_data_from_config(repository_name=repository_name)
-    api = get_api(
-        url=repository_data["gitlab_url"], token=repository_data["gitlab_token"]
-    )
-    process_hook(api=api, data=hook_data)
-    return "Process done"
+    try:
+        hook_data = request.json
+        event_type = hook_data["event_type"]
+        repository_name = hook_data["repository"]["name"]
+        app.logger.info(f"{repository_name}: Event type: {event_type}")
+        repository_data = repo_data_from_config(repository_name=repository_name)
+        api = get_api(
+            url=repository_data["gitlab_url"], token=repository_data["gitlab_token"]
+        )
+        process_hook(api=api, data=hook_data)
+        return "Process done"
+    except Exception as ex:
+        app.logger.error(f"Failed to process hook: {ex}")
+        return "Process failed"
 
 
 def main():
