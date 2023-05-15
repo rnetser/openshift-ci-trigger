@@ -6,3 +6,4 @@ repositories:
     name: org/name
     gitlab_url: https://<gitlab-url>
     gitlab_token: <token>
+    slack-webhook-url: <slack webhook url to post job status>
