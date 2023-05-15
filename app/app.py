@@ -15,8 +15,14 @@ app = Flask("webhook_server")
 
 
 # TODO: Fill all addons and jobs mapping
+# TODO: Remove all but dbaas-operator once we have a successful trigger
 PRODUCTS_AND_JOBS_MAPPING = {
-    "dbaas-operator": "periodic-ci-CSPI-QE-MSI-rdbaas-operator-addon-v4.12-poc-tests"
+    "dbaas-operator": "periodic-ci-CSPI-QE-MSI-rdbaas-operator-addon-v4.12-poc-tests",
+    "ocs-provider": "periodic-ci-CSPI-QE-MSI-rdbaas-operator-addon-v4.12-poc-tests",
+    "acs-fleetshard": "periodic-ci-CSPI-QE-MSI-rdbaas-operator-addon-v4.12-poc-tests",
+    "cert-manager-operator": "periodic-ci-CSPI-QE-MSI-rdbaas-operator-addon-v4.12-poc-tests",
+    "isv-managed-starburst-operator": "periodic-ci-CSPI-QE-MSI-rdbaas-operator-addon-v4.12-poc-tests",
+    "ocs-consumer": "periodic-ci-CSPI-QE-MSI-rdbaas-operator-addon-v4.12-poc-tests",
 }
 
 
