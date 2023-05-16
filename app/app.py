@@ -116,9 +116,9 @@ def process():
         hook_data = request.json
         event_type = hook_data["event_type"]
         repository_name = hook_data["repository"]["name"]
-        slack_webhook_url = hook_data["slack_webhook_url"]
         app.logger.info(f"{repository_name}: Event type: {event_type}")
         repository_data = repo_data_from_config(repository_name=repository_name)
+        slack_webhook_url = repository_data["slack_webhook_url"]
         api = get_api(
             url=repository_data["gitlab_url"], token=repository_data["gitlab_token"]
         )
