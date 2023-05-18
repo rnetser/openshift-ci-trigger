@@ -30,6 +30,13 @@ class RepositoryNotFoundError(Exception):
     pass
 
 
+def dict_to_str(_dict):
+    dict_str = ""
+    for key, value in _dict.items():
+        dict_str += f"{key}: {value}\n\t\t"
+    return dict_str
+
+
 def data_from_config():
     config_file = os.environ.get("OPENSHIFT_CI_TRIGGER_CONFIG", "/config/config.yaml")
     with open(config_file) as fd:
@@ -90,8 +97,16 @@ def trigger_openshift_ci_job(job, addon, slack_webhook_url):
             f"Failed to trigger openshift-ci job: {job} for addon {addon}, response: {res_dict}"
         )
 
+    message = f"""
+    ```
+    openshift-ci: New addon {addon} was merged.
+    triggering job {job}
+    response:
+        {dict_to_str(_dict=res_dict)}
+    ```
+    """
     send_slack_message(
-        message=f"openshift-ci: New addon {addon} was merged, triggering job {job}\nresponse: {res_dict}",
+        message=message,
         webhook_url=slack_webhook_url,
     )
     return res_dict
@@ -99,6 +114,7 @@ def trigger_openshift_ci_job(job, addon, slack_webhook_url):
 
 def send_slack_message(message, webhook_url):
     slack_data = {"text": message}
+    app.logger.info(f"Sending message to slack: {message}")
     response = requests.post(
         webhook_url,
         data=json.dumps(slack_data),
@@ -116,9 +132,9 @@ def process():
         hook_data = request.json
         event_type = hook_data["event_type"]
         repository_name = hook_data["repository"]["name"]
-        slack_webhook_url = hook_data["slack_webhook_url"]
         app.logger.info(f"{repository_name}: Event type: {event_type}")
         repository_data = repo_data_from_config(repository_name=repository_name)
+        slack_webhook_url = repository_data["slack_webhook_url"]
         api = get_api(
             url=repository_data["gitlab_url"], token=repository_data["gitlab_token"]
         )
