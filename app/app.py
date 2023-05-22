@@ -23,6 +23,7 @@ PRODUCTS_AND_JOBS_MAPPING = {
     "cert-manager-operator": "periodic-ci-CSPI-QE-MSI-rdbaas-operator-addon-v4.12-poc-tests",
     "isv-managed-starburst-operator": "periodic-ci-CSPI-QE-MSI-rdbaas-operator-addon-v4.12-poc-tests",
     "ocs-consumer": "periodic-ci-CSPI-QE-MSI-rdbaas-operator-addon-v4.12-poc-tests",
+    "connectors-operator": "periodic-ci-CSPI-QE-MSI-rdbaas-operator-addon-v4.12-poc-tests",
 }
 
 
