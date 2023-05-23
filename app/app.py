@@ -1,12 +1,10 @@
-import json
 import re
 
 import gitlab
-import requests
 import urllib3
 from flask import Flask, request
 from iib_update import run_in_process
-from utils import data_from_config
+from utils import data_from_config, trigger_openshift_ci_job
 
 
 urllib3.disable_warnings()
@@ -17,13 +15,13 @@ app = Flask("webhook_server")
 # TODO: Fill all addons and jobs mapping
 # TODO: Remove all but dbaas-operator once we have a successful trigger
 PRODUCTS_AND_JOBS_MAPPING = {
-    "dbaas-operator": "periodic-ci-CSPI-QE-MSI-rdbaas-operator-addon-v4.12-poc-tests",
-    "ocs-provider": "periodic-ci-CSPI-QE-MSI-rdbaas-operator-addon-v4.12-poc-tests",
-    "acs-fleetshard": "periodic-ci-CSPI-QE-MSI-rdbaas-operator-addon-v4.12-poc-tests",
-    "cert-manager-operator": "periodic-ci-CSPI-QE-MSI-rdbaas-operator-addon-v4.12-poc-tests",
-    "isv-managed-starburst-operator": "periodic-ci-CSPI-QE-MSI-rdbaas-operator-addon-v4.12-poc-tests",
-    "ocs-consumer": "periodic-ci-CSPI-QE-MSI-rdbaas-operator-addon-v4.12-poc-tests",
-    "connectors-operator": "periodic-ci-CSPI-QE-MSI-rdbaas-operator-addon-v4.12-poc-tests",
+    "dbaas-operator": "periodic-ci-CSPI-QE-MSI-rdbaas-operator-product-v4.12-poc-tests",
+    "ocs-provider": "periodic-ci-CSPI-QE-MSI-rdbaas-operator-product-v4.12-poc-tests",
+    "acs-fleetshard": "periodic-ci-CSPI-QE-MSI-rdbaas-operator-product-v4.12-poc-tests",
+    "cert-manager-operator": "periodic-ci-CSPI-QE-MSI-rdbaas-operator-product-v4.12-poc-tests",
+    "isv-managed-starburst-operator": "periodic-ci-CSPI-QE-MSI-rdbaas-operator-product-v4.12-poc-tests",
+    "ocs-consumer": "periodic-ci-CSPI-QE-MSI-rdbaas-operator-product-v4.12-poc-tests",
+    "connectors-operator": "periodic-ci-CSPI-QE-MSI-rdbaas-operator-product-v4.12-poc-tests",
 }
 
 
@@ -62,63 +60,20 @@ def process_hook(api, data, slack_webhook_url):
         merge_request = project.mergerequests.get(object_attributes["iid"])
         for change in merge_request.changes().get("changes", []):
             changed_file = change.get("new_path")
-            # TODO: Get addon version from changed_file and send it to slack
+            # TODO: Get product version from changed_file and send it to slack
             matches = re.match(
-                r"addons/(?P<addon>.*)/addonimagesets/(production|stage)/.*.yaml",
+                r"addons/(?P<product>.*)/addonimagesets/(production|stage)/.*.yaml",
                 changed_file,
             )
             if matches:
-                addon = matches.group("addon")
+                addon = matches.group("product")
                 job = PRODUCTS_AND_JOBS_MAPPING.get(addon)
                 if job:
                     trigger_openshift_ci_job(
-                        job=job, addon=addon, slack_webhook_url=slack_webhook_url
+                        job=job, product=addon, slack_webhook_url=slack_webhook_url
                     )
                 else:
-                    app.logger.info(f"No job found for addon: {addon}")
-
-
-def trigger_openshift_ci_job(job, addon, slack_webhook_url):
-    app.logger.info(f"Triggering openshift-ci job: {job}")
-    config_data = data_from_config()
-    res = requests.post(
-        url=f"{config_data['trigger_url']}/{job}",
-        headers={"Authorization": f"Bearer {config_data['trigger_token']}"},
-        data='{"job_execution_type": "1"}',
-    )
-    res_dict = json.loads(res.text)
-    if (not res.ok) or res_dict["job_status"] != "TRIGGERED":
-        app.logger.error(
-            f"Failed to trigger openshift-ci job: {job} for addon {addon}, response: {res_dict}"
-        )
-
-    message = f"""
-    ```
-    openshift-ci: New addon {addon} was merged.
-    triggering job {job}
-    response:
-        {dict_to_str(_dict=res_dict)}
-    ```
-    """
-    send_slack_message(
-        message=message,
-        webhook_url=slack_webhook_url,
-    )
-    return res_dict
-
-
-def send_slack_message(message, webhook_url):
-    slack_data = {"text": message}
-    app.logger.info(f"Sending message to slack: {message}")
-    response = requests.post(
-        webhook_url,
-        data=json.dumps(slack_data),
-        headers={"Content-Type": "application/json"},
-    )
-    if response.status_code != 200:
-        raise ValueError(
-            f"Request to slack returned an error {response.status_code} with the following message: {response.text}"
-        )
+                    app.logger.info(f"No job found for product: {addon}")
 
 
 @app.route("/process", methods=["POST"])
@@ -141,7 +96,7 @@ def process():
 
 
 def main():
-    run_in_process()
+    run_in_process(logger=app.logger)
     app.logger.info("Starting openshift-ci-trigger app")
     app.run(port=5000, host="0.0.0.0", use_reloader=False)
 

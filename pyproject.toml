@@ -32,7 +32,6 @@ PyYaml = "*"
 PyGithub = "*"
 gitpython = "^3.1.31"
 
-
 [tool.poetry.group.dev.dependencies]
 ipython = "*"
 ipdb = "*"
