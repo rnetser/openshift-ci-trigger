@@ -1,16 +1,27 @@
+import json
+import os
 import re
+from json import JSONDecodeError
+from multiprocessing import Process
+from time import sleep
 
 import gitlab
+import requests
 import urllib3
+import yaml
 from flask import Flask, request
-from iib_update import run_in_process
-from utils import data_from_config, trigger_openshift_ci_job
+from git import Repo
 
 
 urllib3.disable_warnings()
 
 app = Flask("webhook_server")
 
+
+OPERATORS_DATA_FILE = "operators-latest-iib.json"
+OPERATORS_AND_JOBS_MAPPING = {
+    "rhods": {"v4.13": "periodic-ci-CSPI-QE-MSI-rhods-operator-v4.13-rhods-tests"}
+}
 
 # TODO: Fill all addons and jobs mapping
 # TODO: Remove all but dbaas-operator once we have a successful trigger
@@ -29,11 +40,157 @@ class RepositoryNotFoundError(Exception):
     pass
 
 
+def read_data_file():
+    with open(OPERATORS_DATA_FILE, "r") as fd:
+        try:
+            return json.load(fd)
+        except JSONDecodeError:
+            return {}
+
+
+def get_operator_data_from_url(datagrepper_config_data, operator_name):
+    app.logger.info(f"Getting IIB data for {operator_name}")
+    res = requests.get(
+        f"{datagrepper_config_data['datagrepper_query_url']}{operator_name}",
+        verify=False,
+    )
+    return res.json()
+
+
+def get_new_iib(operator_config_data):
+    data = read_data_file()
+    trigger_dict = {}
+    for operator_name in ["rhods"]:
+        trigger_dict[operator_name] = {}
+        app.logger.info(f"Parsing new IIB data for {operator_name}")
+        res = get_operator_data_from_url(
+            datagrepper_config_data=operator_config_data,
+            operator_name=operator_name,
+        )
+        for raw_msg in res["raw_messages"]:
+            iib_data = raw_msg["msg"]["index"]
+            ocp_version = iib_data["ocp_version"]
+            iib_number = iib_data["index_image"].split("iib:")[-1]
+
+            trigger_dict[operator_name][ocp_version] = False
+            operator_data_from_file = data.get(operator_name)
+            if operator_data_from_file:
+                iib_by_ocp_version = operator_data_from_file.get(ocp_version)
+                if iib_by_ocp_version.get("iib"):
+                    if iib_by_ocp_version["iib"] < iib_number:
+                        iib_by_ocp_version["iib"] = iib_number
+                        trigger_dict[operator_name][ocp_version] = True
+                    else:
+                        continue
+                else:
+                    operator_data_from_file[ocp_version] = {"iib": iib_number}
+                    trigger_dict[operator_name][ocp_version] = True
+
+            else:
+                data[operator_name] = {ocp_version: {"iib": iib_number}}
+                trigger_dict[operator_name][ocp_version] = True
+
+    with open(OPERATORS_DATA_FILE, "w") as fd:
+        fd.write(json.dumps(data))
+
+    return trigger_dict
+
+
+def push_changes(git_config_data):
+    token = git_config_data["github_token"]
+    git_repo = Repo(".")
+    app.logger.info(f"Check if {OPERATORS_DATA_FILE} was changed")
+    if OPERATORS_DATA_FILE in git_repo.git.status():
+        git_repo.git.add(OPERATORS_DATA_FILE)
+        git_repo.git.commit("-m", f"Auto update {OPERATORS_DATA_FILE}", "--no-verify")
+        app.logger.info(f"Push new changes for {OPERATORS_DATA_FILE}")
+        git_repo.git.push(
+            f"https://{token}@github.com/RedHatQE/openshift-ci-trigger.git"
+        )
+
+
+def data_from_config():
+    config_file = os.environ.get("OPENSHIFT_CI_TRIGGER_CONFIG", "/config/config.yaml")
+    with open(config_file) as fd:
+        return yaml.safe_load(fd)
+
+
+def send_slack_message(message, webhook_url):
+    slack_data = {"text": message}
+    app.logger.info(f"Sending message to slack: {message}")
+    response = requests.post(
+        webhook_url,
+        data=json.dumps(slack_data),
+        headers={"Content-Type": "application/json"},
+    )
+    if response.status_code != 200:
+        raise ValueError(
+            f"Request to slack returned an error {response.status_code} with the following message: {response.text}"
+        )
+
+
+def trigger_openshift_ci_job(job, product, slack_webhook_url):
+    app.logger.info(f"Triggering openshift-ci job: {job}")
+    config_data = data_from_config()
+    res = requests.post(
+        url=f"{config_data['trigger_url']}/{job}",
+        headers={"Authorization": f"Bearer {config_data['trigger_token']}"},
+        data='{"job_execution_type": "1"}',
+    )
+    res_dict = json.loads(res.text)
+    if (not res.ok) or res_dict["job_status"] != "TRIGGERED":
+        app.logger.error(
+            f"Failed to trigger openshift-ci job: {job} for addon {product}, response: {res_dict}"
+        )
+
+    message = f"""
+    ```
+    openshift-ci: New product {product} was merged/updated.
+    triggering job {job}
+    response:
+        {dict_to_str(_dict=res_dict)}
+    ```
+    """
+    send_slack_message(
+        message=message,
+        webhook_url=slack_webhook_url,
+    )
+    return res_dict
+
+
 def dict_to_str(_dict):
     dict_str = ""
     for key, value in _dict.items():
         dict_str += f"{key}: {value}\n\t\t"
     return dict_str
+
+
+def run_in_process():
+    proc = Process(target=run_iib_update)
+    proc.start()
+
+
+def run_iib_update():
+    while True:
+        try:
+            config_data = data_from_config()
+            slack_webhook_url = config_data["slack_webhook_url"]
+            trigger_dict = get_new_iib(operator_config_data=config_data)
+            push_changes(git_config_data=config_data)
+            for _operator, _version in trigger_dict.items():
+                for _ocp_version, _trigger in _version.items():
+                    if _trigger:
+                        job = OPERATORS_AND_JOBS_MAPPING[_operator][_version]
+                        trigger_openshift_ci_job(
+                            job=job,
+                            product=_operator,
+                            slack_webhook_url=slack_webhook_url,
+                        )
+
+            sleep(60 * 5)
+        except Exception as ex:
+            app.logger.error(ex)
+            continue
 
 
 def repo_data_from_config(repository_name):
@@ -96,7 +253,8 @@ def process():
 
 
 def main():
-    run_in_process(logger=app.logger)
+    # run_in_process()
+    run_iib_update()
     app.logger.info("Starting openshift-ci-trigger app")
     app.run(port=5000, host="0.0.0.0", use_reloader=False)
 
