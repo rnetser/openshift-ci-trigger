@@ -58,8 +58,7 @@ def push_changes(git_config_data):
         git_repo.git.add(OPERATORS_DATA_FILE)
         git_repo.git.commit("-m", f"Auto update {OPERATORS_DATA_FILE}", "--no-verify")
         git_repo.git.push(
-            f"https://{token}@github.com/RedHatQE/openshift-ci-trigger.git",
-            "origin/main",
+            f"https://{token}@github.com/RedHatQE/openshift-ci-trigger.git"
         )
 
 
