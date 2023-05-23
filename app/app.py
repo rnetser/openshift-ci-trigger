@@ -191,8 +191,7 @@ def get_new_iib():
         git_repo.git.commit("-m", f"Auto update {operators_data_file}", "--no-verify")
         git_repo.git.push(
             f"https://{token}@github.com/RedHatQE/openshift-ci-trigger.git",
-            "origin",
-            "main",
+            "origin/main",
         )
 
 
