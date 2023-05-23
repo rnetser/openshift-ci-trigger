@@ -1,6 +1,7 @@
 trigger_url: <url to send the trigger request to>
 trigger_token: <token>
 github_token: <token>
+datagrepper_query_url: <datagrepper query url>
 
 repositories:
   repository-name:
