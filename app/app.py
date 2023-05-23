@@ -54,6 +54,7 @@ def get_operator_data_from_url(datagrepper_config_data, operator_name):
         f"{datagrepper_config_data['datagrepper_query_url']}{operator_name}",
         verify=False,
     )
+    app.logger.info(f"Done getting IIB data for {operator_name}")
     return res.json()
 
 
@@ -90,6 +91,8 @@ def get_new_iib(operator_config_data):
                 data[operator_name] = {ocp_version: {"iib": iib_number}}
                 trigger_dict[operator_name][ocp_version] = True
 
+        app.logger.info(f"Done parsing new IIB data for {operator_name}")
+
     with open(OPERATORS_DATA_FILE, "w") as fd:
         fd.write(json.dumps(data))
 
@@ -107,6 +110,8 @@ def push_changes(git_config_data):
         git_repo.git.push(
             f"https://{token}@github.com/RedHatQE/openshift-ci-trigger.git"
         )
+
+    app.logger.info(f"Done check if {OPERATORS_DATA_FILE} was changed")
 
 
 def data_from_config():
@@ -189,7 +194,7 @@ def run_iib_update():
 
             sleep(60 * 5)
         except Exception as ex:
-            app.logger.error(ex)
+            app.logger.error(f"Fail to run run_iib_update function. {ex}")
             continue
 
 
