@@ -100,9 +100,9 @@ def get_new_iib(operator_config_data):
 
 
 def push_changes(git_config_data):
+    app.logger.info(f"Check if {OPERATORS_DATA_FILE} was changed")
     token = git_config_data["github_token"]
     git_repo = Repo(".")
-    app.logger.info(f"Check if {OPERATORS_DATA_FILE} was changed")
     if OPERATORS_DATA_FILE in git_repo.git.status():
         git_repo.git.add(OPERATORS_DATA_FILE)
         git_repo.git.commit("-m", f"Auto update {OPERATORS_DATA_FILE}", "--no-verify")
