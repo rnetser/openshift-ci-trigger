@@ -18,7 +18,7 @@ urllib3.disable_warnings()
 app = Flask("webhook_server")
 
 
-OPERATORS_DATA_FILE = "operators-latest-iib.json"
+OPERATORS_DATA_FILE = "/tmp/openshift-ci-trigger/operators-latest-iib.json"
 OPERATORS_AND_JOBS_MAPPING = {
     "rhods": {"v4.13": "periodic-ci-CSPI-QE-MSI-rhods-operator-v4.13-rhods-tests"}
 }
@@ -99,17 +99,14 @@ def get_new_iib(operator_config_data):
     return trigger_dict
 
 
-def push_changes(git_config_data):
+def push_changes(repo_url):
     app.logger.info(f"Check if {OPERATORS_DATA_FILE} was changed")
-    token = git_config_data["github_token"]
-    git_repo = Repo(".")
+    git_repo = Repo("/tmp/openshift-ci-trigger")
     if OPERATORS_DATA_FILE in git_repo.git.status():
         git_repo.git.add(OPERATORS_DATA_FILE)
         git_repo.git.commit("-m", f"Auto update {OPERATORS_DATA_FILE}", "--no-verify")
         app.logger.info(f"Push new changes for {OPERATORS_DATA_FILE}")
-        git_repo.git.push(
-            f"https://{token}@github.com/RedHatQE/openshift-ci-trigger.git"
-        )
+        git_repo.git.push(repo_url)
 
     app.logger.info(f"Done check if {OPERATORS_DATA_FILE} was changed")
 
@@ -180,8 +177,11 @@ def run_iib_update():
         try:
             config_data = data_from_config()
             slack_webhook_url = config_data["slack_webhook_url"]
+            token = config_data["github_token"]
+            repo_url = f"https://{token}@github.com/RedHatQE/openshift-ci-trigger.git"
+            os.system(f"git clone {repo_url} /tmp/openshift-ci-trigger")
             trigger_dict = get_new_iib(operator_config_data=config_data)
-            push_changes(git_config_data=config_data)
+            push_changes(repo_url=repo_url)
             for _operator, _version in trigger_dict.items():
                 for _ocp_version, _trigger in _version.items():
                     if _trigger:
