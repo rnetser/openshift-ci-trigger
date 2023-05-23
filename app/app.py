@@ -1,12 +1,14 @@
 import json
 import os
 import re
+from json import JSONDecodeError
 
 import gitlab
 import requests
 import urllib3
 import yaml
 from flask import Flask, request
+from git import Repo
 
 
 urllib3.disable_warnings()
@@ -146,10 +148,59 @@ def process():
         return "Process failed"
 
 
+def get_new_iib():
+    operators_data_file = "operators-latest-iib.json"
+    with open(operators_data_file, "a+") as fd:
+        try:
+            data = json.load(fd)
+        except JSONDecodeError:
+            data = {}
+
+    for operator_name in ["rhods"]:
+        res = requests.get(
+            "https://datagrepper.engineering.redhat.com/raw?"
+            "topic=/topic/VirtualTopic.eng.ci.redhat-container-image.index.built&"
+            f"contains={operator_name}",
+            verify=False,
+        )
+
+        for raw_msg in res.json()["raw_messages"]:
+            iib_data = raw_msg["msg"]["index"]
+            ocp_version = iib_data["ocp_version"]
+            operator_data = data.get(operator_name)
+            iib_number = iib_data["index_image"].split("iib:")[-1]
+            if operator_data:
+                version_data = operator_data.get(ocp_version)
+                if version_data == ocp_version:
+                    if version_data["iib"] < iib_number:
+                        version_data["iib"] = iib_number
+                else:
+                    operator_data[ocp_version] = {"iib": iib_number}
+
+            else:
+                data[operator_name] = {ocp_version: {"iib": iib_number}}
+
+    with open(operators_data_file, "w") as fd:
+        fd.write(json.dumps(data))
+
+    config_data = data_from_config()
+    token = config_data["github_token"]
+    git_repo = Repo(".")
+    if operators_data_file in git_repo.git.status():
+        git_repo.git.add(operators_data_file)
+        git_repo.git.commit("-m", f"Auto update {operators_data_file}", "--no-verify")
+        git_repo.git.push(
+            f"https://{token}@github.com/RedHatQE/openshift-ci-trigger.git",
+            "origin",
+            "main",
+        )
+
+
 def main():
     app.logger.info("Starting openshift-ci-trigger app")
     app.run(port=5000, host="0.0.0.0", use_reloader=False)
 
 
 if __name__ == "__main__":
+    get_new_iib()
     main()
