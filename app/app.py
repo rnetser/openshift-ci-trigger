@@ -5,6 +5,7 @@ import gitlab
 import requests
 import urllib3
 from flask import Flask, request
+from iib_update import run_in_process
 from utils import data_from_config
 
 
@@ -140,6 +141,7 @@ def process():
 
 
 def main():
+    run_in_process()
     app.logger.info("Starting openshift-ci-trigger app")
     app.run(port=5000, host="0.0.0.0", use_reloader=False)
 

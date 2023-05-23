@@ -1,5 +1,7 @@
 import json
 from json import JSONDecodeError
+from multiprocessing import Process
+from time import sleep
 
 import requests
 from git import Repo
@@ -62,7 +64,18 @@ def push_changes(git_config_data):
         )
 
 
+def run_in_process():
+    proc = Process(target=main)
+    proc.start()
+
+
+def main():
+    while True:
+        config_data = data_from_config()
+        get_new_iib(operator_config_data=config_data)
+        push_changes(git_config_data=config_data)
+        sleep(60 * 5)
+
+
 if __name__ == "__main__":
-    config_data = data_from_config()
-    get_new_iib(operator_config_data=config_data)
-    push_changes(git_config_data=config_data)
+    main()
