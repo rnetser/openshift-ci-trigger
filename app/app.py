@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import shutil
 from json import JSONDecodeError
 from multiprocessing import Process
 from time import sleep
@@ -17,7 +18,7 @@ urllib3.disable_warnings()
 
 app = Flask("webhook_server")
 
-
+LOCAL_REPO_PATH = "/tmp/openshift-ci-trigger"
 OPERATORS_DATA_FILE = "/tmp/openshift-ci-trigger/operators-latest-iib.json"
 OPERATORS_AND_JOBS_MAPPING = {
     "rhods": {"v4.13": "periodic-ci-CSPI-QE-MSI-rhods-operator-v4.13-rhods-tests"}
@@ -101,7 +102,7 @@ def get_new_iib(operator_config_data):
 
 def push_changes(repo_url):
     app.logger.info(f"Check if {OPERATORS_DATA_FILE} was changed")
-    git_repo = Repo("/tmp/openshift-ci-trigger")
+    git_repo = Repo(LOCAL_REPO_PATH)
     if OPERATORS_DATA_FILE in git_repo.git.status():
         git_repo.git.add(OPERATORS_DATA_FILE)
         git_repo.git.commit("-m", f"Auto update {OPERATORS_DATA_FILE}", "--no-verify")
@@ -179,7 +180,8 @@ def run_iib_update():
             slack_webhook_url = config_data["slack_webhook_url"]
             token = config_data["github_token"]
             repo_url = f"https://{token}@github.com/RedHatQE/openshift-ci-trigger.git"
-            os.system(f"git clone {repo_url} /tmp/openshift-ci-trigger")
+            shutil.rmtree(path=LOCAL_REPO_PATH, ignore_errors=True)
+            os.system(f"git clone {repo_url} {LOCAL_REPO_PATH}")
             trigger_dict = get_new_iib(operator_config_data=config_data)
             push_changes(repo_url=repo_url)
             for _operator, _version in trigger_dict.items():
@@ -258,8 +260,7 @@ def process():
 
 
 def main():
-    # run_in_process()
-    run_iib_update()
+    run_in_process()
     app.logger.info("Starting openshift-ci-trigger app")
     app.run(port=5000, host="0.0.0.0", use_reloader=False)
 
