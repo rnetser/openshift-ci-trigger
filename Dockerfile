@@ -4,7 +4,7 @@ EXPOSE 5000
 COPY . /openshift-ci-trigger
 WORKDIR /openshift-ci-trigger
 RUN python3 -m pip install pip --upgrade \
-    && python3 -m pip install poetry \
+    && python3 -m pip install poetry pre-commit \
     && poetry config cache-dir /app \
     && poetry config virtualenvs.in-project true \
     && poetry config installer.max-workers 10 \

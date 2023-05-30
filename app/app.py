@@ -19,7 +19,10 @@ urllib3.disable_warnings()
 app = Flask("webhook_server")
 
 LOCAL_REPO_PATH = "/tmp/openshift-ci-trigger"
-OPERATORS_DATA_FILE = "/tmp/openshift-ci-trigger/operators-latest-iib.json"
+OPERATORS_DATA_FILE_NAME = "operators-latest-iib.json"
+OPERATORS_DATA_FILE = os.path.join(
+    "/tmp/openshift-ci-trigger", OPERATORS_DATA_FILE_NAME
+)
 OPERATORS_AND_JOBS_MAPPING = {
     "rhods": {"v4.13": "periodic-ci-CSPI-QE-MSI-rhods-operator-v4.13-rhods-tests"}
 }
@@ -34,6 +37,7 @@ PRODUCTS_AND_JOBS_MAPPING = {
     "isv-managed-starburst-operator": "periodic-ci-CSPI-QE-MSI-rdbaas-operator-product-v4.12-poc-tests",
     "ocs-consumer": "periodic-ci-CSPI-QE-MSI-rdbaas-operator-product-v4.12-poc-tests",
     "connectors-operator": "periodic-ci-CSPI-QE-MSI-rdbaas-operator-product-v4.12-poc-tests",
+    "advanced-cluster-management": "periodic-ci-CSPI-QE-MSI-rdbaas-operator-product-v4.12-poc-tests",
 }
 
 
@@ -74,6 +78,9 @@ def get_new_iib(operator_config_data):
             ocp_version = iib_data["ocp_version"]
             iib_number = iib_data["index_image"].split("iib:")[-1]
 
+            if trigger_dict.get(operator_name, {}).get(ocp_version):
+                continue
+
             trigger_dict[operator_name][ocp_version] = False
             operator_data_from_file = data.get(operator_name)
             if operator_data_from_file:
@@ -100,14 +107,28 @@ def get_new_iib(operator_config_data):
     return trigger_dict
 
 
+def clone_repo(repo_url):
+    current_dir = os.getcwd()
+    try:
+        shutil.rmtree(path=LOCAL_REPO_PATH, ignore_errors=True)
+        Repo.clone_from(url=repo_url, to_path=LOCAL_REPO_PATH)
+        os.chdir(LOCAL_REPO_PATH)
+        os.system("pre-commit install")
+    finally:
+        os.chdir(current_dir)
+
+
 def push_changes(repo_url):
     app.logger.info(f"Check if {OPERATORS_DATA_FILE} was changed")
     git_repo = Repo(LOCAL_REPO_PATH)
-    if OPERATORS_DATA_FILE in git_repo.git.status():
+    if OPERATORS_DATA_FILE_NAME in git_repo.git.status():
+        app.logger.info(f"Found changes for {OPERATORS_DATA_FILE}, pushing new changes")
         git_repo.git.add(OPERATORS_DATA_FILE)
-        git_repo.git.commit("-m", f"Auto update {OPERATORS_DATA_FILE}", "--no-verify")
+        os.system(f"pre-commit run ---files {OPERATORS_DATA_FILE}")
+        git_repo.git.commit("-m", f"Auto update {OPERATORS_DATA_FILE}")
         app.logger.info(f"Push new changes for {OPERATORS_DATA_FILE}")
         git_repo.git.push(repo_url)
+        app.logger.info(f"New changes for {OPERATORS_DATA_FILE_NAME} pushed")
 
     app.logger.info(f"Done check if {OPERATORS_DATA_FILE} was changed")
 
@@ -176,25 +197,26 @@ def run_in_process():
 def run_iib_update():
     while True:
         try:
+            app.logger.info("Check for new operators IIB")
             config_data = data_from_config()
             slack_webhook_url = config_data["slack_webhook_url"]
             token = config_data["github_token"]
             repo_url = f"https://{token}@github.com/RedHatQE/openshift-ci-trigger.git"
-            shutil.rmtree(path=LOCAL_REPO_PATH, ignore_errors=True)
-            os.system(f"git clone {repo_url} {LOCAL_REPO_PATH}")
+            clone_repo(repo_url=repo_url)
             trigger_dict = get_new_iib(operator_config_data=config_data)
             push_changes(repo_url=repo_url)
             for _operator, _version in trigger_dict.items():
                 for _ocp_version, _trigger in _version.items():
                     if _trigger:
-                        job = OPERATORS_AND_JOBS_MAPPING[_operator][_version]
+                        job = OPERATORS_AND_JOBS_MAPPING[_operator][_ocp_version]
                         trigger_openshift_ci_job(
                             job=job,
                             product=_operator,
                             slack_webhook_url=slack_webhook_url,
                         )
 
-            sleep(60 * 5)
+            sleep(60 * 60)
+            app.logger.info("Done check for new operators IIB, sleeping for 60 minutes")
         except Exception as ex:
             app.logger.error(f"Fail to run run_iib_update function. {ex}")
             continue
