@@ -76,7 +76,7 @@ def get_new_iib(operator_config_data):
         for raw_msg in res["raw_messages"]:
             iib_data = raw_msg["msg"]["index"]
             ocp_version = iib_data["ocp_version"]
-            iib_number = iib_data["index_image"].split("iib:")[-1]
+            index_image = iib_data["index_image"]
 
             if trigger_dict.get(operator_name, {}).get(ocp_version):
                 continue
@@ -86,17 +86,20 @@ def get_new_iib(operator_config_data):
             if operator_data_from_file:
                 iib_by_ocp_version = operator_data_from_file.get(ocp_version)
                 if iib_by_ocp_version.get("iib"):
-                    if iib_by_ocp_version["iib"] < iib_number:
-                        iib_by_ocp_version["iib"] = iib_number
+                    if (
+                        iib_by_ocp_version["iib"]
+                        < iib_data["index_image"].split("iib:")[-1]
+                    ):
+                        iib_by_ocp_version["iib"] = index_image
                         trigger_dict[operator_name][ocp_version] = True
                     else:
                         continue
                 else:
-                    operator_data_from_file[ocp_version] = {"iib": iib_number}
+                    operator_data_from_file[ocp_version] = {"iib": index_image}
                     trigger_dict[operator_name][ocp_version] = True
 
             else:
-                data[operator_name] = {ocp_version: {"iib": iib_number}}
+                data[operator_name] = {ocp_version: {"iib": index_image}}
                 trigger_dict[operator_name][ocp_version] = True
 
         app.logger.info(f"Done parsing new IIB data for {operator_name}")
