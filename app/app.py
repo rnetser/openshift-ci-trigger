@@ -2,6 +2,7 @@ import json
 import os
 import re
 import shutil
+from contextlib import contextmanager
 from json import JSONDecodeError
 from multiprocessing import Process
 from time import sleep
@@ -45,6 +46,15 @@ class RepositoryNotFoundError(Exception):
     pass
 
 
+@contextmanager
+def change_directory(directory, logger):
+    logger.info(f"Changing directory to {directory}")
+    old_cwd = os.getcwd()
+    yield os.chdir(directory)
+    logger.info(f"Changing back to directory {old_cwd}")
+    os.chdir(old_cwd)
+
+
 def read_data_file():
     with open(OPERATORS_DATA_FILE, "r") as fd:
         try:
@@ -60,21 +70,22 @@ def get_operator_data_from_url(datagrepper_config_data, operator_name):
         verify=False,
     )
     app.logger.info(f"Done getting IIB data for {operator_name}")
-    return res.json()
+    json_res = res.json()
+    for raw_msg in json_res["raw_messages"]:
+        yield raw_msg["msg"]["index"]
 
 
 def get_new_iib(operator_config_data):
+    new_trigger_data = False
     data = read_data_file()
     trigger_dict = {}
     for operator_name in ["rhods"]:
         trigger_dict[operator_name] = {}
         app.logger.info(f"Parsing new IIB data for {operator_name}")
-        res = get_operator_data_from_url(
+        for iib_data in get_operator_data_from_url(
             datagrepper_config_data=operator_config_data,
             operator_name=operator_name,
-        )
-        for raw_msg in res["raw_messages"]:
-            iib_data = raw_msg["msg"]["index"]
+        ):
             ocp_version = iib_data["ocp_version"]
             index_image = iib_data["index_image"]
 
@@ -86,54 +97,63 @@ def get_new_iib(operator_config_data):
             if operator_data_from_file:
                 iib_by_ocp_version = operator_data_from_file.get(ocp_version)
                 if iib_by_ocp_version.get("iib"):
-                    if (
-                        iib_by_ocp_version["iib"]
-                        < iib_data["index_image"].split("iib:")[-1]
-                    ):
+                    iib_from_url = iib_data["index_image"].split("iib:")[-1]
+                    iib_from_file = iib_by_ocp_version["iib"].split("iib:")[-1]
+                    if iib_from_file < iib_from_url:
+                        new_trigger_data = True
                         iib_by_ocp_version["iib"] = index_image
                         trigger_dict[operator_name][ocp_version] = True
                     else:
                         continue
                 else:
+                    new_trigger_data = True
                     operator_data_from_file[ocp_version] = {"iib": index_image}
                     trigger_dict[operator_name][ocp_version] = True
 
             else:
+                new_trigger_data = True
                 data[operator_name] = {ocp_version: {"iib": index_image}}
                 trigger_dict[operator_name][ocp_version] = True
 
         app.logger.info(f"Done parsing new IIB data for {operator_name}")
 
-    with open(OPERATORS_DATA_FILE, "w") as fd:
-        fd.write(json.dumps(data))
+    if new_trigger_data:
+        app.logger.info(f"New IIB data found: {data}")
+        with open(OPERATORS_DATA_FILE, "w") as fd:
+            fd.write(json.dumps(data))
 
     return trigger_dict
 
 
 def clone_repo(repo_url):
-    current_dir = os.getcwd()
-    try:
-        shutil.rmtree(path=LOCAL_REPO_PATH, ignore_errors=True)
-        Repo.clone_from(url=repo_url, to_path=LOCAL_REPO_PATH)
-        os.chdir(LOCAL_REPO_PATH)
-        os.system("pre-commit install")
-    finally:
-        os.chdir(current_dir)
+    shutil.rmtree(path=LOCAL_REPO_PATH, ignore_errors=True)
+    Repo.clone_from(url=repo_url, to_path=LOCAL_REPO_PATH)
 
 
 def push_changes(repo_url):
     app.logger.info(f"Check if {OPERATORS_DATA_FILE} was changed")
-    git_repo = Repo(LOCAL_REPO_PATH)
-    if OPERATORS_DATA_FILE_NAME in git_repo.git.status():
-        app.logger.info(f"Found changes for {OPERATORS_DATA_FILE}, pushing new changes")
-        git_repo.git.add(OPERATORS_DATA_FILE)
-        git_repo.git.config("--global", "user.email", f"{app.name}@local")
-        git_repo.git.config("--global", "user.name", app.name)
-        os.system(f"pre-commit run ---files {OPERATORS_DATA_FILE}")
-        git_repo.git.commit("-m", f"Auto update {OPERATORS_DATA_FILE}")
-        app.logger.info(f"Push new changes for {OPERATORS_DATA_FILE}")
-        git_repo.git.push(repo_url)
-        app.logger.info(f"New changes for {OPERATORS_DATA_FILE_NAME} pushed")
+    with change_directory(directory=LOCAL_REPO_PATH, logger=app.logger):
+        try:
+            _git_repo = Repo(LOCAL_REPO_PATH)
+            _git_repo.git.config("user.email", f"{app.name}@local")
+            _git_repo.git.config("user.name", app.name)
+            os.system("pre-commit install")
+
+            if OPERATORS_DATA_FILE_NAME in _git_repo.git.status():
+                app.logger.info(
+                    f"Found changes for {OPERATORS_DATA_FILE_NAME}, pushing new changes"
+                )
+                app.logger.info(f"Run pre-commit on {OPERATORS_DATA_FILE_NAME}")
+                os.system(f"pre-commit run --files {OPERATORS_DATA_FILE_NAME}")
+                app.logger.info(f"Adding {OPERATORS_DATA_FILE_NAME} to git")
+                _git_repo.git.add(OPERATORS_DATA_FILE_NAME)
+                app.logger.info(f"Committing changes for {OPERATORS_DATA_FILE_NAME}")
+                _git_repo.git.commit("-m", f"'Auto update: {OPERATORS_DATA_FILE_NAME}'")
+                app.logger.info(f"Push new changes for {OPERATORS_DATA_FILE}")
+                _git_repo.git.push(repo_url)
+                app.logger.info(f"New changes for {OPERATORS_DATA_FILE_NAME} pushed")
+        except Exception as ex:
+            app.logger.error(f"Failed to update {OPERATORS_DATA_FILE_NAME}. {ex}")
 
     app.logger.info(f"Done check if {OPERATORS_DATA_FILE} was changed")
 
@@ -220,11 +240,13 @@ def run_iib_update():
                             slack_webhook_url=slack_webhook_url,
                         )
 
-            sleep(60 * 60)
-            app.logger.info("Done check for new operators IIB, sleeping for 60 minutes")
         except Exception as ex:
             app.logger.error(f"Fail to run run_iib_update function. {ex}")
             continue
+
+        finally:
+            app.logger.info("Done check for new operators IIB, sleeping for 60 minutes")
+            sleep(60 * 60)
 
 
 def repo_data_from_config(repository_name):
