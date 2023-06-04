@@ -98,7 +98,8 @@ def get_new_iib(operator_config_data):
                 iib_by_ocp_version = operator_data_from_file.get(ocp_version)
                 if iib_by_ocp_version.get("iib"):
                     iib_from_url = iib_data["index_image"].split("iib:")[-1]
-                    if iib_by_ocp_version["iib"] < iib_from_url:
+                    iib_from_file = iib_by_ocp_version["iib"].split("iib:")[-1]
+                    if iib_from_file < iib_from_url:
                         new_trigger_data = True
                         iib_by_ocp_version["iib"] = index_image
                         trigger_dict[operator_name][ocp_version] = True
