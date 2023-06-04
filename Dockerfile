@@ -1,6 +1,7 @@
 FROM python
 EXPOSE 5000
 
+ENV PRE_COMMIT_HOME=/tmp
 COPY . /openshift-ci-trigger
 WORKDIR /openshift-ci-trigger
 RUN python3 -m pip install pip --upgrade \
