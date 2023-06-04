@@ -1,1 +1,1 @@
-{"rhods": {"v4.14": {"iib": "507681"}, "v4.13": {"iib": "507678"}, "v4.12": {"iib": "507673"}, "v4.11": {"iib": "507669"}, "v4.10": {"iib": "507666"}}}
+{"rhods": {"v4.14": {"iib": "registry-proxy.engineering.redhat.com/rh-osbs/iib:510436"}, "v4.13": {"iib": "registry-proxy.engineering.redhat.com/rh-osbs/iib:510435"}, "v4.12": {"iib": "registry-proxy.engineering.redhat.com/rh-osbs/iib:510434"}, "v4.11": {"iib": "registry-proxy.engineering.redhat.com/rh-osbs/iib:510433"}, "v4.10": {"iib": "registry-proxy.engineering.redhat.com/rh-osbs/iib:510432"}}}
