@@ -242,7 +242,6 @@ def run_iib_update():
 
         except Exception as ex:
             app.logger.error(f"Fail to run run_iib_update function. {ex}")
-            continue
 
         finally:
             app.logger.info("Done check for new operators IIB, sleeping for 60 minutes")
