@@ -16,7 +16,7 @@ from git import Repo
 
 urllib3.disable_warnings()
 
-app = Flask("webhook_server")
+app = Flask("openshift-ci-trigger")
 
 LOCAL_REPO_PATH = "/tmp/openshift-ci-trigger"
 OPERATORS_DATA_FILE_NAME = "operators-latest-iib.json"
@@ -127,8 +127,8 @@ def push_changes(repo_url):
     if OPERATORS_DATA_FILE_NAME in git_repo.git.status():
         app.logger.info(f"Found changes for {OPERATORS_DATA_FILE}, pushing new changes")
         git_repo.git.add(OPERATORS_DATA_FILE)
-        git_repo.git.config("--global", "user.email", f"{app.__name__}@local")
-        git_repo.git.config("--global", "user.name", app.__name__)
+        git_repo.git.config("--global", "user.email", f"{app.name}@local")
+        git_repo.git.config("--global", "user.name", app.name)
         os.system(f"pre-commit run ---files {OPERATORS_DATA_FILE}")
         git_repo.git.commit("-m", f"Auto update {OPERATORS_DATA_FILE}")
         app.logger.info(f"Push new changes for {OPERATORS_DATA_FILE}")
