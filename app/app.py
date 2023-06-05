@@ -278,6 +278,9 @@ def process_hook(api, data, slack_webhook_url):
     if object_attributes.get("action") == "merge":
         project = api.projects.get(data["project"]["id"])
         merge_request = project.mergerequests.get(object_attributes["iid"])
+        app.logger.info(
+            f"{project.name}: New merge request [{merge_request.iid}] {merge_request.title}"
+        )
         for change in merge_request.changes().get("changes", []):
             changed_file = change.get("new_path")
             # TODO: Get product version from changed_file and send it to slack
@@ -293,7 +296,9 @@ def process_hook(api, data, slack_webhook_url):
                         job=job, product=addon, slack_webhook_url=slack_webhook_url
                     )
                 else:
-                    app.logger.info(f"No job found for product: {addon}")
+                    app.logger.info(
+                        f"{project.name}: No job found for product: {addon}"
+                    )
 
 
 @app.route("/process", methods=["POST"])
