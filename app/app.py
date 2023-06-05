@@ -25,7 +25,10 @@ OPERATORS_DATA_FILE = os.path.join(
     "/tmp/openshift-ci-trigger", OPERATORS_DATA_FILE_NAME
 )
 OPERATORS_AND_JOBS_MAPPING = {
-    "rhods": {"v4.13": "periodic-ci-CSPI-QE-MSI-rhods-operator-v4.13-rhods-tests"}
+    "rhods": {
+        "v4.14": "periodic-ci-CSPI-QE-MSI-rhods-operator-v4.13-rhods-tests",
+        "v4.13": "periodic-ci-CSPI-QE-MSI-rhods-operator-v4.13-rhods-tests",
+    }
 }
 
 # TODO: Fill all addons and jobs mapping
@@ -233,7 +236,12 @@ def run_iib_update():
             for _operator, _version in trigger_dict.items():
                 for _ocp_version, _trigger in _version.items():
                     if _trigger:
-                        job = OPERATORS_AND_JOBS_MAPPING[_operator][_ocp_version]
+                        job = OPERATORS_AND_JOBS_MAPPING[_operator].get(_ocp_version)
+                        if not job:
+                            app.logger.info(
+                                f"No job found for product: {_operator} and ocp version: {_ocp_version}"
+                            )
+                            continue
                         trigger_openshift_ci_job(
                             job=job,
                             product=_operator,
