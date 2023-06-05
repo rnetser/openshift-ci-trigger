@@ -181,8 +181,8 @@ def send_slack_message(message, webhook_url):
         )
 
 
-def trigger_openshift_ci_job(job, product, slack_webhook_url):
-    app.logger.info(f"Triggering openshift-ci job: {job}")
+def trigger_openshift_ci_job(job, product, slack_webhook_url, _type):
+    app.logger.info(f"Triggering openshift-ci job for {product} [{_type}]: {job}")
     config_data = data_from_config()
     res = requests.post(
         url=f"{config_data['trigger_url']}/{job}",
@@ -197,7 +197,7 @@ def trigger_openshift_ci_job(job, product, slack_webhook_url):
 
     message = f"""
     ```
-    openshift-ci: New product {product} was merged/updated.
+    openshift-ci: New product {product} [{_type}] was merged/updated.
     triggering job {job}
     response:
         {dict_to_str(_dict=res_dict)}
@@ -246,6 +246,7 @@ def run_iib_update():
                             job=job,
                             product=_operator,
                             slack_webhook_url=slack_webhook_url,
+                            _type="operator",
                         )
 
         except Exception as ex:
@@ -293,7 +294,10 @@ def process_hook(api, data, slack_webhook_url):
                 job = PRODUCTS_AND_JOBS_MAPPING.get(addon)
                 if job:
                     trigger_openshift_ci_job(
-                        job=job, product=addon, slack_webhook_url=slack_webhook_url
+                        job=job,
+                        product=addon,
+                        slack_webhook_url=slack_webhook_url,
+                        _type="addon",
                     )
                 else:
                     app.logger.info(
