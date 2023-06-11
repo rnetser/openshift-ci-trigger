@@ -185,10 +185,11 @@ def trigger_openshift_ci_job(job, product, slack_webhook_url, _type):
     app.logger.info(f"Triggering openshift-ci job for {product} [{_type}]: {job}")
     config_data = data_from_config()
     trigger_url = config_data["trigger_url"]
+    data = '{"job_execution_type": "1"}'
     res = requests.post(
         url=f"{trigger_url}/{job}",
         headers={"Authorization": f"Bearer {config_data['trigger_token']}"},
-        data='{"job_execution_type": "1"}',
+        data=data,
     )
     res_dict = json.loads(res.text)
     if (not res.ok) or res_dict["job_status"] != "TRIGGERED":
@@ -205,7 +206,7 @@ response:
 ```
 Get the status of the job run:
 ```
-curl -X GET -d '{"job_execution_type": "1"}' -H "Authorization: Bearer $OPENSHIFT_CI_TOKEN" {trigger_url}/{res_dict.id}
+curl -X GET -d '{data}' -H "Authorization: Bearer $OPENSHIFT_CI_TOKEN" {trigger_url}/{res_dict.id}
 ```
 """
     send_slack_message(
