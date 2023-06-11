@@ -259,8 +259,8 @@ def run_iib_update():
             app.logger.error(f"Fail to run run_iib_update function. {ex}")
 
         finally:
-            app.logger.info("Done check for new operators IIB, sleeping for 60 minutes")
-            sleep(60 * 60)
+            app.logger.info("Done check for new operators IIB, sleeping for 1 day")
+            sleep(60 * 60 * 24)
 
 
 def repo_data_from_config(repository_name):
