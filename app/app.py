@@ -321,13 +321,14 @@ def process_hook(api, data, slack_webhook_url):
 def process():
     slack_errors_webhook_url = None
     try:
+        config_data = data_from_config()
+        slack_errors_webhook_url = config_data["slack_errors_webhook_url"]
         hook_data = request.json
         event_type = hook_data["event_type"]
         repository_name = hook_data["repository"]["name"]
         app.logger.info(f"{repository_name}: Event type: {event_type}")
         repository_data = repo_data_from_config(repository_name=repository_name)
         slack_webhook_url = repository_data["slack_webhook_url"]
-        slack_errors_webhook_url = repository_data["slack_errors_webhook_url"]
         api = get_api(
             url=repository_data["gitlab_url"], token=repository_data["gitlab_token"]
         )
