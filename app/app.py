@@ -206,7 +206,7 @@ response:
 ```
 Get the status of the job run:
 ```
-curl -X GET -d '{data}' -H "Authorization: Bearer $OPENSHIFT_CI_TOKEN" {trigger_url}/{res_dict.id}
+curl -X GET -d '{data}' -H "Authorization: Bearer $OPENSHIFT_CI_TOKEN" {trigger_url}/{res_dict['id']}
 ```
 """
     send_slack_message(
