@@ -1,0 +1,1 @@
+{"v4.13": {"periodic-ci-CSPI-QE-MSI-rhods-operator-v4.13-rhods-tests": {"rhods": {"triggered": true, "iib": "registry-proxy.engineering.redhat.com/rh-osbs/iib:518022"}, "servicemesh": {"triggered": true, "iib": "registry-proxy.engineering.redhat.com/rh-osbs/iib:518141"}, "nfd": {"triggered": true, "iib": "registry-proxy.engineering.redhat.com/rh-osbs/iib:514485"}}}}
