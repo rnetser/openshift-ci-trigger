@@ -193,11 +193,18 @@ def trigger_openshift_ci_job(job, product, slack_webhook_url, _type):
         headers={"Authorization": f"Bearer {config_data['trigger_token']}"},
         data=data,
     )
+    if not res.ok:
+        app.logger.error(
+            f"Failed to trigger openshift-ci job: {job} for addon {product}, response: {res.text}"
+        )
+        return {}
+
     res_dict = json.loads(res.text)
-    if (not res.ok) or res_dict["job_status"] != "TRIGGERED":
+    if res_dict["job_status"] != "TRIGGERED":
         app.logger.error(
             f"Failed to trigger openshift-ci job: {job} for addon {product}, response: {res_dict}"
         )
+        return {}
 
     message = f"""
 ```
