@@ -25,19 +25,6 @@ OPERATORS_DATA_FILE = os.path.join(
     "/tmp/openshift-ci-trigger", OPERATORS_DATA_FILE_NAME
 )
 
-# TODO: Fill all addons and jobs mapping
-# TODO: Remove all but dbaas-operator once we have a successful trigger
-PRODUCTS_AND_JOBS_MAPPING = {
-    "dbaas-operator": "periodic-ci-CSPI-QE-MSI-rhods-addon-v4.13-smoke-rosa-rhods",
-    "ocs-provider": "periodic-ci-CSPI-QE-MSI-rhods-addon-v4.13-smoke-rosa-rhods",
-    "acs-fleetshard": "periodic-ci-CSPI-QE-MSI-rhods-addon-v4.13-smoke-rosa-rhods",
-    "cert-manager-operator": "periodic-ci-CSPI-QE-MSI-rhods-addon-v4.13-smoke-rosa-rhods",
-    "isv-managed-starburst-operator": "periodic-ci-CSPI-QE-MSI-rhods-addon-v4.13-smoke-rosa-rhods",
-    "ocs-consumer": "periodic-ci-CSPI-QE-MSI-rhods-addon-v4.13-smoke-rosa-rhods",
-    "connectors-operator": "periodic-ci-CSPI-QE-MSI-rhods-addon-v4.13-smoke-rosa-rhods",
-    "advanced-cluster-management": "periodic-ci-CSPI-QE-MSI-rhods-addon-v4.13-smoke-rosa-rhods",
-}
-
 
 class RepositoryNotFoundError(Exception):
     pass
@@ -331,7 +318,7 @@ def get_api(url, token):
     return gitlab_api
 
 
-def process_hook(api, data, slack_webhook_url):
+def process_hook(api, data, slack_webhook_url, repository_data):
     config_data = data_from_config()
     slack_errors_webhook_url = config_data["slack_errors_webhook_url"]
     object_attributes = data["object_attributes"]
@@ -350,7 +337,7 @@ def process_hook(api, data, slack_webhook_url):
             )
             if matches:
                 addon = matches.group("product")
-                job = PRODUCTS_AND_JOBS_MAPPING.get(addon)
+                job = repository_data["products_jobs_mapping"].get(addon)
                 if job:
                     trigger_openshift_ci_job(
                         job=job,
@@ -380,7 +367,12 @@ def process():
         api = get_api(
             url=repository_data["gitlab_url"], token=repository_data["gitlab_token"]
         )
-        process_hook(api=api, data=hook_data, slack_webhook_url=slack_webhook_url)
+        process_hook(
+            api=api,
+            data=hook_data,
+            slack_webhook_url=slack_webhook_url,
+            repository_data=repository_data,
+        )
         return "Process done"
     except Exception as ex:
         err_msg = f"Failed to process hook: {ex}"

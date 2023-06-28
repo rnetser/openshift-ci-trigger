@@ -2,10 +2,21 @@ trigger_url: <url to send the trigger request to>
 trigger_token: <token>
 github_token: <token>
 datagrepper_query_url: <datagrepper query url>
+slack_webhook_url: <slack webhook url to post job status>
+slack_errors_webhook_url: <slack webhook url to post code errors>
 
+# FOr addons
 repositories:
   repository-name:
     name: org/name
     gitlab_url: https://<gitlab-url>
     gitlab_token: <token>
     slack-webhook-url: <slack webhook url to post job status>
+    products_jobs_mapping:
+      dbaas-operator: <openshift-ci job name>
+
+# For operators
+openshift_ci_jobs:
+  v4.13:
+    <openshift-ci job name>:
+      <operator name for datagrabber>: <operator name in OCP>
