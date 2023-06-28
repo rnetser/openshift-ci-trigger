@@ -28,14 +28,14 @@ OPERATORS_DATA_FILE = os.path.join(
 # TODO: Fill all addons and jobs mapping
 # TODO: Remove all but dbaas-operator once we have a successful trigger
 PRODUCTS_AND_JOBS_MAPPING = {
-    "dbaas-operator": "periodic-ci-CSPI-QE-MSI-rdbaas-operator-product-v4.12-poc-tests",
-    "ocs-provider": "periodic-ci-CSPI-QE-MSI-rdbaas-operator-product-v4.12-poc-tests",
-    "acs-fleetshard": "periodic-ci-CSPI-QE-MSI-rdbaas-operator-product-v4.12-poc-tests",
-    "cert-manager-operator": "periodic-ci-CSPI-QE-MSI-rdbaas-operator-product-v4.12-poc-tests",
-    "isv-managed-starburst-operator": "periodic-ci-CSPI-QE-MSI-rdbaas-operator-product-v4.12-poc-tests",
-    "ocs-consumer": "periodic-ci-CSPI-QE-MSI-rdbaas-operator-product-v4.12-poc-tests",
-    "connectors-operator": "periodic-ci-CSPI-QE-MSI-rdbaas-operator-product-v4.12-poc-tests",
-    "advanced-cluster-management": "periodic-ci-CSPI-QE-MSI-rdbaas-operator-product-v4.12-poc-tests",
+    "dbaas-operator": "periodic-ci-CSPI-QE-MSI-rhods-addon-v4.13-smoke-rosa-rhods",
+    "ocs-provider": "periodic-ci-CSPI-QE-MSI-rhods-addon-v4.13-smoke-rosa-rhods",
+    "acs-fleetshard": "periodic-ci-CSPI-QE-MSI-rhods-addon-v4.13-smoke-rosa-rhods",
+    "cert-manager-operator": "periodic-ci-CSPI-QE-MSI-rhods-addon-v4.13-smoke-rosa-rhods",
+    "isv-managed-starburst-operator": "periodic-ci-CSPI-QE-MSI-rhods-addon-v4.13-smoke-rosa-rhods",
+    "ocs-consumer": "periodic-ci-CSPI-QE-MSI-rhods-addon-v4.13-smoke-rosa-rhods",
+    "connectors-operator": "periodic-ci-CSPI-QE-MSI-rhods-addon-v4.13-smoke-rosa-rhods",
+    "advanced-cluster-management": "periodic-ci-CSPI-QE-MSI-rhods-addon-v4.13-smoke-rosa-rhods",
 }
 
 
