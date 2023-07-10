@@ -320,6 +320,23 @@ def get_api(url, token):
 
 
 def process_hook(api, data, slack_webhook_url, repository_data):
+    def _trigger_jobs(
+        _addon, _slack_webhook_url, _slack_errors_webhook_url, _repository_data
+    ):
+        _jobs = _repository_data["products_jobs_mapping"].get(_addon)
+        if not _jobs:
+            app.logger.info(f"{project.name}: No job found for product: {_addon}")
+            return
+
+        for _job in _jobs:
+            trigger_openshift_ci_job(
+                job=_job,
+                product=_addon,
+                slack_webhook_url=_slack_webhook_url,
+                _type="addon",
+                slack_errors_webhook_url=_slack_errors_webhook_url,
+            )
+
     config_data = data_from_config()
     slack_errors_webhook_url = config_data["slack_errors_webhook_url"]
     object_attributes = data["object_attributes"]
@@ -337,20 +354,12 @@ def process_hook(api, data, slack_webhook_url, repository_data):
                 changed_file,
             )
             if matches:
-                addon = matches.group("product")
-                job = repository_data["products_jobs_mapping"].get(addon)
-                if job:
-                    trigger_openshift_ci_job(
-                        job=job,
-                        product=addon,
-                        slack_webhook_url=slack_webhook_url,
-                        _type="addon",
-                        slack_errors_webhook_url=slack_errors_webhook_url,
-                    )
-                else:
-                    app.logger.info(
-                        f"{project.name}: No job found for product: {addon}"
-                    )
+                _trigger_jobs(
+                    _addon=matches.group("product"),
+                    _slack_webhook_url=slack_webhook_url,
+                    _slack_errors_webhook_url=slack_errors_webhook_url,
+                    _repository_data=repository_data,
+                )
 
 
 @app.route("/process", methods=["POST"])

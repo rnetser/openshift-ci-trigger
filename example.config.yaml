@@ -13,7 +13,9 @@ repositories:
     gitlab_token: <token>
     slack-webhook-url: <slack webhook url to post job status>
     products_jobs_mapping:
-      dbaas-operator: <openshift-ci job name>
+      dbaas-operator:
+        - <openshift-ci job1 name>
+        - <openshift-ci job2 name>
 
 # For operators
 openshift_ci_jobs:
