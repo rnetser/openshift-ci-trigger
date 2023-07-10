@@ -235,17 +235,17 @@ triggering job {job}
 response:
     {dict_to_str(_dict=res_dict)}
 ```
-Get the status of the job run:
 ```
+Get the status of the job run:
 curl -X GET -d '{data}' -H "Authorization: Bearer $OPENSHIFT_CI_TOKEN" {trigger_url}/{res_dict['id']}
 ```
 """
     if job_dict:
         message += f"""
+```
 Triggered using data:
-    ```
     {operators_triggered_for_slack(job_dict=job_dict)}
-    ```
+```
 
 """
     send_slack_message(
