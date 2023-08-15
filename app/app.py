@@ -40,20 +40,6 @@ def operators_triggered_for_slack(job_dict):
     return res
 
 
-def extract_key_from_dict(key, _dict):
-    if isinstance(_dict, dict):
-        for _key, _val in _dict.items():
-            if _key == key:
-                yield _val
-            if isinstance(_val, dict):
-                for result in extract_key_from_dict(key, _val):
-                    yield result
-            elif isinstance(_val, list):
-                for _item in _val:
-                    for result in extract_key_from_dict(key, _item):
-                        yield result
-
-
 @contextmanager
 def change_directory(directory, logger):
     logger.info(f"Changing directory to {directory}")
@@ -280,17 +266,17 @@ def run_iib_update():
             clone_repo(repo_url=repo_url)
             trigger_dict = get_new_iib(operator_config_data=config_data)
             push_changes(repo_url=repo_url, slack_webhook_url=slack_errors_webhook_url)
-            for _ocp_version, _job_data in trigger_dict.items():
-                if any(extract_key_from_dict("triggered", _job_data)):
-                    _job_name = [*_job_data][0]
-                    trigger_openshift_ci_job(
-                        job=_job_name,
-                        product=", ".join(_job_data[_job_name].keys()),
-                        slack_webhook_url=slack_webhook_url,
-                        _type="operator",
-                        slack_errors_webhook_url=slack_errors_webhook_url,
-                        trigger_dict=trigger_dict,
-                    )
+            for _, _job_data in trigger_dict.items():
+                for _job_name, _operator_dict in _job_data.items():
+                    if any([_value["triggered"] for _value in _operator_dict.values()]):
+                        trigger_openshift_ci_job(
+                            job=_job_name,
+                            product=", ".join(_operator_dict.keys()),
+                            slack_webhook_url=slack_webhook_url,
+                            _type="operator",
+                            slack_errors_webhook_url=slack_errors_webhook_url,
+                            trigger_dict=trigger_dict,
+                        )
 
         except Exception as ex:
             err_msg = f"Fail to run run_iib_update function. {ex}"
