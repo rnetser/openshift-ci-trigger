@@ -170,7 +170,8 @@ def send_slack_message(message, webhook_url):
     )
     if response.status_code != 200:
         raise ValueError(
-            f"Request to slack returned an error {response.status_code} with the following message: {response.text}"
+            f"Request to slack returned an error {response.status_code} with the"
+            f" following message: {response.text}"
         )
 
 
@@ -206,7 +207,10 @@ def trigger_openshift_ci_job(
 
     res_dict = json.loads(res.text)
     if res_dict["job_status"] != "TRIGGERED":
-        msg = f"Failed to trigger openshift-ci job: {job} for addon {product}, response: {res_dict}"
+        msg = (
+            f"Failed to trigger openshift-ci job: {job} for addon {product}, response:"
+            f" {res_dict}"
+        )
         app.logger.error(msg)
         send_slack_message(
             message=msg,
@@ -330,7 +334,8 @@ def process_hook(api, data, slack_webhook_url, repository_data):
         project = api.projects.get(data["project"]["id"])
         merge_request = project.mergerequests.get(object_attributes["iid"])
         app.logger.info(
-            f"{project.name}: New merge request [{merge_request.iid}] {merge_request.title}"
+            f"{project.name}: New merge request [{merge_request.iid}]"
+            f" {merge_request.title}"
         )
         for change in merge_request.changes().get("changes", []):
             changed_file = change.get("new_path")
