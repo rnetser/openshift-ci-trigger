@@ -31,7 +31,7 @@ slack-sdk = "^3.21.3"
 flask = "^3.0.0"
 python-gitlab = "^3.15.0"
 pyyaml = "^6.0"
-pygithub = "^1.59.0"
+pygithub = "^2.0.0"
 
 [tool.poetry.group.dev.dependencies]
 ipython = "*"
