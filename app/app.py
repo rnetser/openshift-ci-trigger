@@ -311,9 +311,13 @@ def get_api(url, token):
 
 def process_hook(api, data, slack_webhook_url, repository_data):
     def _trigger_jobs(
-        _addon, _slack_webhook_url, _slack_errors_webhook_url, _repository_data
+        _addon,
+        _ocm_env,
+        _slack_webhook_url,
+        _slack_errors_webhook_url,
+        _repository_data,
     ):
-        _jobs = _repository_data["products_jobs_mapping"].get(_addon)
+        _jobs = _repository_data["products_jobs_mapping"][_addon][_ocm_env]
         if not _jobs:
             app.logger.info(f"{project.name}: No job found for product: {_addon}")
             return
@@ -341,12 +345,13 @@ def process_hook(api, data, slack_webhook_url, repository_data):
             changed_file = change.get("new_path")
             # TODO: Get product version from changed_file and send it to slack
             matches = re.match(
-                r"addons/(?P<product>.*)/addonimagesets/(production|stage)/.*.yaml",
+                r"addons/(?P<product>.*)/addonimagesets/(?P<env>production|stage)/.*.yaml",
                 changed_file,
             )
             if matches:
                 _trigger_jobs(
                     _addon=matches.group("product"),
+                    _ocm_env=matches.group("env"),
                     _slack_webhook_url=slack_webhook_url,
                     _slack_errors_webhook_url=slack_errors_webhook_url,
                     _repository_data=repository_data,
