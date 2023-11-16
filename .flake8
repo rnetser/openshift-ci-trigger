@@ -1,5 +1,6 @@
 [flake8]
-max-line-length = 120
+select=FCN,M511
+
 exclude =
     doc,
     .tox,
@@ -8,3 +9,18 @@ exclude =
     Pipfile.*,
     docs/*,
     .cache/*
+
+enable-extensions =
+    FCN,
+
+fcn_exclude_functions =
+    logger,
+    os,
+    json,
+    requests,
+    re,
+    git,
+    Flask,
+    write,
+    yaml,
+    Repo

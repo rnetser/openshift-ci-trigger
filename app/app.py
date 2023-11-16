@@ -21,9 +21,7 @@ app = Flask("openshift-ci-trigger")
 
 LOCAL_REPO_PATH = "/tmp/openshift-ci-trigger"
 OPERATORS_DATA_FILE_NAME = "operators-latest-iib.json"
-OPERATORS_DATA_FILE = os.path.join(
-    "/tmp/openshift-ci-trigger", OPERATORS_DATA_FILE_NAME
-)
+OPERATORS_DATA_FILE = os.path.join("/tmp/openshift-ci-trigger", OPERATORS_DATA_FILE_NAME)
 
 
 class RepositoryNotFoundError(Exception):
@@ -80,12 +78,10 @@ def get_new_iib(operator_config_data):
         for openshift_ci_job_name in [*_jobs_data]:
             job_data = openshift_ci_jobs[_ocp_version][openshift_ci_job_name]
             for _operator, _operator_name in job_data.items():
-                data_from_file.setdefault(_ocp_version, {}).setdefault(
-                    openshift_ci_job_name, {}
-                ).setdefault(_operator_name, {})
-                _operator_data = data_from_file[_ocp_version][openshift_ci_job_name][
-                    _operator_name
-                ]
+                data_from_file.setdefault(_ocp_version, {}).setdefault(openshift_ci_job_name, {}).setdefault(
+                    _operator_name, {}
+                )
+                _operator_data = data_from_file[_ocp_version][openshift_ci_job_name][_operator_name]
                 _operator_data["triggered"] = False
                 app.logger.info(f"Parsing new IIB data for {_operator_name}")
                 for iib_data in get_operator_data_from_url(
@@ -134,9 +130,7 @@ def push_changes(repo_url, slack_webhook_url):
             os.system("pre-commit install")
 
             if OPERATORS_DATA_FILE_NAME in _git_repo.git.status():
-                app.logger.info(
-                    f"Found changes for {OPERATORS_DATA_FILE_NAME}, pushing new changes"
-                )
+                app.logger.info(f"Found changes for {OPERATORS_DATA_FILE_NAME}, pushing new changes")
                 app.logger.info(f"Run pre-commit on {OPERATORS_DATA_FILE_NAME}")
                 os.system(f"pre-commit run --files {OPERATORS_DATA_FILE_NAME}")
                 app.logger.info(f"Adding {OPERATORS_DATA_FILE_NAME} to git")
@@ -170,8 +164,7 @@ def send_slack_message(message, webhook_url):
     )
     if response.status_code != 200:
         raise ValueError(
-            f"Request to slack returned an error {response.status_code} with the"
-            f" following message: {response.text}"
+            f"Request to slack returned an error {response.status_code} with the" f" following message: {response.text}"
         )
 
 
@@ -207,10 +200,7 @@ def trigger_openshift_ci_job(
 
     res_dict = json.loads(res.text)
     if res_dict["job_status"] != "TRIGGERED":
-        msg = (
-            f"Failed to trigger openshift-ci job: {job} for addon {product}, response:"
-            f" {res_dict}"
-        )
+        msg = f"Failed to trigger openshift-ci job: {job} for addon {product}, response:" f" {res_dict}"
         app.logger.error(msg)
         send_slack_message(
             message=msg,
@@ -296,9 +286,7 @@ def repo_data_from_config(repository_name):
     config = data_from_config()
     data = config["repositories"].get(repository_name)
     if not data:
-        raise RepositoryNotFoundError(
-            f"Repository {repository_name} not found in config file"
-        )
+        raise RepositoryNotFoundError(f"Repository {repository_name} not found in config file")
 
     return data
 
@@ -337,10 +325,7 @@ def process_hook(api, data, slack_webhook_url, repository_data):
     if object_attributes.get("action") == "merge":
         project = api.projects.get(data["project"]["id"])
         merge_request = project.mergerequests.get(object_attributes["iid"])
-        app.logger.info(
-            f"{project.name}: New merge request [{merge_request.iid}]"
-            f" {merge_request.title}"
-        )
+        app.logger.info(f"{project.name}: New merge request [{merge_request.iid}]" f" {merge_request.title}")
         for change in merge_request.changes().get("changes", []):
             changed_file = change.get("new_path")
             # TODO: Get product version from changed_file and send it to slack
@@ -370,9 +355,7 @@ def process():
         app.logger.info(f"{repository_name}: Event type: {event_type}")
         repository_data = repo_data_from_config(repository_name=repository_name)
         slack_webhook_url = repository_data["slack_webhook_url"]
-        api = get_api(
-            url=repository_data["gitlab_url"], token=repository_data["gitlab_token"]
-        )
+        api = get_api(url=repository_data["gitlab_url"], token=repository_data["gitlab_token"])
         process_hook(
             api=api,
             data=hook_data,
