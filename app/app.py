@@ -75,37 +75,38 @@ def get_new_iib(operator_config_data):
     openshift_ci_jobs = operator_config_data.get("openshift_ci_jobs", {})
 
     for _ocp_version, _jobs_data in openshift_ci_jobs.items():
-        for openshift_ci_job_name in [*_jobs_data]:
-            job_data = openshift_ci_jobs[_ocp_version][openshift_ci_job_name]
-            for _operator, _operator_name in job_data.items():
-                data_from_file.setdefault(_ocp_version, {}).setdefault(openshift_ci_job_name, {}).setdefault(
-                    _operator_name, {}
-                )
-                _operator_data = data_from_file[_ocp_version][openshift_ci_job_name][_operator_name]
-                _operator_data["triggered"] = False
-                app.logger.info(f"Parsing new IIB data for {_operator_name}")
-                for iib_data in get_operator_data_from_url(
-                    datagrepper_config_data=operator_config_data,
-                    operator_name=_operator,
-                    ocp_version=_ocp_version,
-                ):
-                    index_image = iib_data["index_image"]
+        if _jobs_data:
+            for openshift_ci_job_name in [*_jobs_data]:
+                job_data = openshift_ci_jobs[_ocp_version][openshift_ci_job_name]
+                for _operator, _operator_name in job_data.items():
+                    data_from_file.setdefault(_ocp_version, {}).setdefault(openshift_ci_job_name, {}).setdefault(
+                        _operator_name, {}
+                    )
+                    _operator_data = data_from_file[_ocp_version][openshift_ci_job_name][_operator_name]
+                    _operator_data["triggered"] = False
+                    app.logger.info(f"Parsing new IIB data for {_operator_name}")
+                    for iib_data in get_operator_data_from_url(
+                        datagrepper_config_data=operator_config_data,
+                        operator_name=_operator,
+                        ocp_version=_ocp_version,
+                    ):
+                        index_image = iib_data["index_image"]
 
-                    iib_data_from_file = _operator_data.get("iib")
-                    if iib_data_from_file:
-                        iib_from_url = iib_data["index_image"].split("iib:")[-1]
-                        iib_from_file = iib_data_from_file.split("iib:")[-1]
-                        if iib_from_file < iib_from_url:
+                        iib_data_from_file = _operator_data.get("iib")
+                        if iib_data_from_file:
+                            iib_from_url = iib_data["index_image"].split("iib:")[-1]
+                            iib_from_file = iib_data_from_file.split("iib:")[-1]
+                            if iib_from_file < iib_from_url:
+                                _operator_data["iib"] = index_image
+                                _operator_data["triggered"] = True
+                                new_trigger_data = True
+
+                        else:
                             _operator_data["iib"] = index_image
                             _operator_data["triggered"] = True
                             new_trigger_data = True
 
-                    else:
-                        _operator_data["iib"] = index_image
-                        _operator_data["triggered"] = True
-                        new_trigger_data = True
-
-        app.logger.info(f"Done parsing new IIB data for {_jobs_data}")
+            app.logger.info(f"Done parsing new IIB data for {_jobs_data}")
 
     if new_trigger_data:
         app.logger.info(f"New IIB data found: {data_from_file}")
