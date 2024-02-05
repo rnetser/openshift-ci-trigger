@@ -4,6 +4,9 @@ github_token: <token>
 datagrepper_query_url: <datagrepper query url>
 slack_webhook_url: <slack webhook url to post job status>
 slack_errors_webhook_url: <slack webhook url to post code errors>
+jenkins_token: <token>
+jenkins_username: <username>
+jenkins_url: <url to jenkins>
 
 # FOr addons
 repositories:
@@ -13,16 +16,30 @@ repositories:
     gitlab_token: <token>
     slack-webhook-url: <slack webhook url to post job status>
     products_jobs_mapping:
-      dbaas-operator:
-        stage:
-          - <openshift-ci job1 name>
-          - <openshift-ci job2 name>
-        production:
-          - <openshift-ci job3 name>
-          - <openshift-ci job4 name>
+      openshift-ci:
+        dbaas-operator:
+          stage:
+            - <openshift-ci job1 name>
+            - <openshift-ci job2 name>
+          production:
+            - <openshift-ci job3 name>
+            - <openshift-ci job4 name>
+      jenkins:
+        dbaas-operator:
+          stage:
+            - <jenkins job1 name>
+            - <jenkins job2 name>
+          production:
+            - <jenkins job3 name>
+            - <jenkins job4 name>
 
 # For operators
 openshift_ci_jobs:
   v4.13:
     <openshift-ci job name>:
+      <operator name for datagrabber>: <operator name in OCP>
+
+jenkins_jobs:
+  v4.15:
+    <jenkins job name>:
       <operator name for datagrabber>: <operator name in OCP>

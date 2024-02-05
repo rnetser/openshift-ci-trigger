@@ -23,6 +23,7 @@ flask = "^3.0.0"
 python-gitlab = "^4.0.0"
 pyyaml = "^6.0"
 pygithub = "^2.0.0"
+api4jenkins = "^2.0.3"
 
 [tool.poetry.group.dev.dependencies]
 ipython = "*"
