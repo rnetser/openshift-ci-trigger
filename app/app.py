@@ -213,7 +213,7 @@ def trigger_ci_job(
     if openshift_ci:
         response = {dict_to_str(_dict=res)}
         status_info_command = f"""
-curl -X GET -d '{data}' -H "Authorization: Bearer $OPENSHIFT_CI_TOKEN" {trigger_url}/{res['id']}
+curl -X GET -d '{data}' -H "Authorization: Bearer $OPENSHIFT_CI_TOKEN" {trigger_url}/{res["id"]}
 """
 
     elif jenkins_ci:
