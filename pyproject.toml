@@ -13,7 +13,7 @@ version = "1.0.0"
 description = "Trigger openshift CI job based on merged MR in Gitlab"
 authors = ["Meni Yakove <myakove@gmail.com>"]
 readme = "README.md"
-packages = [{include = "app"}]
+packages = [{ include = "app" }]
 
 [tool.poetry.dependencies]
 python = "^3.8"
@@ -29,6 +29,13 @@ api4jenkins = "^2.0.3"
 ipython = "*"
 ipdb = "*"
 
+[tool.poetry-dynamic-versioning]
+enable = true
+pattern = "((?P<epoch>\\d+)!)?(?P<base>\\d+(\\.\\d+)*)"
+
+[tool.poetry-dynamic-versioning.substitution]
+files = ["VERSION"]
+
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning"]
+build-backend = "poetry_dynamic_versioning.backend"
