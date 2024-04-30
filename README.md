@@ -1,1 +1,1 @@
-Add webhook in Gitlab and mark `Merge request events`
+Moved to https://github.com/RedHatQE/ci-jobs-trigger
